@@ -1,0 +1,272 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Order Trainer – Global (Graphic Edition)</title>
+<style>
+  :root{
+    --bg1:#0f172a; /* slate-900 */
+    --bg2:#1e293b; /* slate-800 */
+    --card:#0b1220; /* dark card */
+    --glass:rgba(255,255,255,0.06);
+    --bd:rgba(255,255,255,0.12);
+    --txt:#e5e7eb; /* slate-200 */
+    --muted:#94a3b8; /* slate-400 */
+    --accent:#8b5cf6; /* violet-500 */
+    --accent2:#22d3ee; /* cyan-400 */
+    --ok:#22c55e; /* green-500 */
+    --bad:#ef4444; /* red-500 */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    color:var(--txt);
+    background: radial-gradient(1200px 800px at 20% -10%, #172554 0%, transparent 60%),
+                radial-gradient(900px 600px at 120% 10%, #0ea5e9 0%, transparent 50%),
+                linear-gradient(160deg,var(--bg1),var(--bg2));
+    overflow-x:hidden;
+  }
+
+  /* Watermark */
+  .watermark{
+    position:fixed; inset:0; pointer-events:none;
+    display:flex; align-items:center; justify-content:center;
+    z-index:0; opacity:0.06;
+    font-weight:900; font-size:min(8vw,64px); letter-spacing:.2em;
+    color:#fff; text-transform:uppercase;
+    text-align:center; filter:blur(0.2px);
+  }
+  .watermark span{
+    background: linear-gradient(90deg, #ffffff, #93c5fd);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+
+  .container{position:relative; z-index:1; max-width:1200px; margin:24px auto; padding:0 16px}
+  header{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px}
+  h1{margin:0; font-size:28px; font-weight:800; letter-spacing:.5px}
+  .sub{color:var(--muted); font-size:12px}
+
+  /* Global buttons */
+  .controls{display:flex; gap:10px; flex-wrap:wrap; margin:16px 0 22px 0}
+  button{
+    border:1px solid var(--bd); background:linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+    color:var(--txt); border-radius:14px; padding:10px 14px; font-size:14px; cursor:pointer;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+    transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
+    backdrop-filter: blur(6px);
+  }
+  button:hover{ transform: translateY(-2px); border-color:#c7d2fe; }
+  .primary{ background:linear-gradient(180deg, rgba(139,92,246,0.35), rgba(34,211,238,0.18)); border-color:#c084fc }
+  .danger{ background:linear-gradient(180deg, rgba(239,68,68,0.3), rgba(239,68,68,0.08)); border-color:#fca5a5 }
+
+  /* Grid of cubes */
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px}
+  .box{
+    position:relative; border:1px solid var(--bd);
+    background:linear-gradient(160deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    border-radius:20px; padding:14px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    transform-style:preserve-3d; perspective:800px;
+    overflow:hidden;
+  }
+  .box::before, .box::after{
+    content:\"\"; position:absolute; inset:auto -40% -60% auto; width:180px; height:180px;
+    background: radial-gradient(closest-side, rgba(139,92,246,0.25), transparent);
+    transform: rotate(25deg);
+  }
+  .box::after{ inset:auto auto -70% -40%; background: radial-gradient(closest-side, rgba(34,211,238,0.25), transparent); }
+  .title{font-weight:900; font-size:16px; letter-spacing:.5px; margin-bottom:10px; color:#e9d5ff}
+  .list{display:flex; flex-direction:column; gap:8px; min-height:120px}
+  .item{
+    display:flex; align-items:center; gap:10px; border:1px solid var(--bd); border-radius:14px;
+    padding:10px 12px; background:rgba(2,6,23,0.65);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 18px rgba(0,0,0,0.25);
+    cursor:grab; transition: transform .12s ease, border-color .2s ease, background .2s ease;
+  }
+  .item:hover{ transform: translateZ(6px) translateY(-2px); border-color:#7dd3fc; background:rgba(2,6,23,0.75); }
+  .idx{ width:26px; text-align:center; color:var(--muted); font-size:12px }
+  .correct{ border-color:#22c55e; box-shadow: 0 0 0 2px rgba(34,197,94,0.25) inset, 0 8px 18px rgba(0,0,0,0.25) }
+  .incorrect{ border-color:#ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.22) inset, 0 8px 18px rgba(0,0,0,0.25) }
+  .dragging{ opacity:.6; transform: scale(.98) rotate(-1deg) }
+
+  /* Floating squares (simple animation) */
+  .floaters{ position:fixed; inset:0; pointer-events:none; z-index:0; }
+  .sq{ position:absolute; width:14px; height:14px; background:linear-gradient(45deg, var(--accent), var(--accent2)); opacity:.12;
+       animation: drift 16s linear infinite; border-radius:4px; filter: blur(.2px); }
+  .sq:nth-child(2){ width:10px; height:10px; left:15%; top:80%; animation-duration:19s; }
+  .sq:nth-child(3){ width:12px; height:12px; left:70%; top:75%; animation-duration:21s; }
+  .sq:nth-child(4){ width:16px; height:16px; left:85%; top:20%; animation-duration:18s; }
+  .sq:nth-child(5){ width:11px; height:11px; left:5%; top:30%; animation-duration:23s; }
+  @keyframes drift {
+    0% { transform: translateY(0) translateX(0) rotate(0deg); }
+    50% { transform: translateY(-40px) translateX(10px) rotate(10deg); }
+    100% { transform: translateY(0) translateX(0) rotate(0deg); }
+  }
+</style>
+</head>
+<body>
+<div class="watermark"><span>MADE BY DR MOHAMED ELSHAHAWY</span></div>
+<div class="floaters"><div class="sq"></div><div class="sq"></div><div class="sq"></div><div class="sq"></div><div class="sq"></div></div>
+
+<div class="container">
+  <header>
+    <h1>Order Trainer – Global</h1>
+    <div class="sub">Shuffle / Check / Reset يعملوا على كل المربعات مرة واحدة</div>
+  </header>
+
+  <div class="controls">
+    <button id="shuffleAll" class="primary">🔀 Shuffle All</button>
+    <button id="checkAll">✅ Check All</button>
+    <button id="resetAll" class="danger">↻ Reset All</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const topics = [
+  { title: "Verein", items: ["Zielsetzung des Vereins", "Entschädigung für Vereinstätigkeit", "Schutz persönlicher Daten"] },
+  { title: "Bibliothek", items: ["Haftung des Ausweisinhabers", "Dauer der Ausleihe", "Umgang mit Medien"] },
+  { title: "Reisen Veranstalter", items: ["Preisänderung", "Sonderkündigungsrecht", "Rechte des Kunden"] },
+  { title: "Bankkonto oder mobiler Vertrag", items: ["Vertragslaufzeit", "Zahlungsweise", "Allgemeine Bedingungen"] },
+  { title: "Haus und Bad", items: ["Hausrecht und Verbot", "Wertvollgegenstand", "Sauberkeit, Entschädigung, Haftung"] },
+  { title: "Hotelordnung", items: ["Haftung", "Verhalten im Zimmer", "Abreisen & Ausgang"] },
+  { title: "Sporthalle", items: ["Haftung/Nutzungsberechtigung", "Gemeinsame Nutzung", "Kleidungsordnung"] },
+  { title: "Schwimmbad", items: ["Körperreinigung", "Wertvollgegenstand", "Haftung/Bestimmung"] }
+];
+
+let originalOrders = topics.map(t => [...t.items]);
+
+const grid = document.getElementById('grid');
+
+function createBox(topic, index){
+  const box = document.createElement('div');
+  box.className = 'box';
+  const title = document.createElement('div');
+  title.className = 'title';
+  title.textContent = `${index+1}. ${topic.title}`;
+  const list = document.createElement('div');
+  list.className = 'list';
+  list.id = 'list-' + index;
+  box.appendChild(title);
+  box.appendChild(list);
+  grid.appendChild(box);
+
+  topic.items.forEach(item => {
+    const el = createItem(item);
+    list.appendChild(el);
+  });
+}
+
+function createItem(text){
+  const item = document.createElement('div');
+  item.className = 'item';
+  item.draggable = true;
+  const idx = document.createElement('div');
+  idx.className = 'idx';
+  idx.textContent = '';
+  const label = document.createElement('div');
+  label.textContent = text;
+  label.style.fontWeight = '700';
+  item.appendChild(idx);
+  item.appendChild(label);
+  // DnD
+  item.addEventListener('dragstart', e => { item.classList.add('dragging'); });
+  item.addEventListener('dragend', e => { item.classList.remove('dragging'); });
+  return item;
+}
+
+function enableDnD(){
+  document.querySelectorAll('.list').forEach(list => {
+    list.addEventListener('dragover', e => {
+      e.preventDefault();
+      const dragging = document.querySelector('.dragging');
+      if(!dragging || dragging.parentElement !== list) return; // restrict inside same box
+      const after = getDragAfterElement(list, e.clientY);
+      if(after == null) list.appendChild(dragging);
+      else list.insertBefore(dragging, after);
+      refreshIndices(list);
+    });
+    refreshIndices(list);
+  });
+}
+
+function refreshIndices(list){
+  [...list.children].forEach((child, i) => {
+    child.querySelector('.idx').textContent = i+1;
+  });
+}
+
+function getDragAfterElement(container, y){
+  const els = [...container.querySelectorAll('.item:not(.dragging)')];
+  return els.reduce((closest,child)=>{
+    const rect = child.getBoundingClientRect();
+    const offset = y - rect.top - rect.height/2;
+    if(offset < 0 && offset > closest.offset){
+      return {offset, element: child};
+    } else return closest;
+  }, {offset: Number.NEGATIVE_INFINITY}).element;
+}
+
+function shuffle(array){
+  for(let i=array.length-1;i>0;i--){
+    const j = Math.floor(Math.random() * (i+1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function shuffleAll(){
+  topics.forEach((topic, idx) => {
+    const list = document.getElementById('list-'+idx);
+    const items = [...list.children].map(li => li.querySelector('div:nth-child(2)').textContent);
+    shuffle(items);
+    list.innerHTML = '';
+    items.forEach(t => list.appendChild(createItem(t)));
+  });
+  enableDnD();
+  clearState();
+}
+
+function checkAll(){
+  topics.forEach((topic, idx) => {
+    const list = document.getElementById('list-'+idx);
+    const items = [...list.children].map(li => li.querySelector('div:nth-child(2)').textContent);
+    items.forEach((t, i) => {
+      const el = list.children[i];
+      const isCorrect = (t === originalOrders[idx][i]);
+      el.classList.toggle('correct', isCorrect);
+      el.classList.toggle('incorrect', !isCorrect);
+    });
+  });
+}
+
+function resetAll(){
+  grid.innerHTML='';
+  topics.forEach((topic, idx) => {
+    topic.items = [...originalOrders[idx]];
+    createBox(topic, idx);
+  });
+  enableDnD();
+  clearState();
+}
+
+function clearState(){
+  document.querySelectorAll('.item').forEach(el => {
+    el.classList.remove('correct','incorrect');
+  });
+}
+
+function init(){
+  topics.forEach((t,i)=>createBox(t,i));
+  enableDnD();
+  shuffleAll(); // initial shuffle
+  document.getElementById('shuffleAll').addEventListener('click', shuffleAll);
+  document.getElementById('checkAll').addEventListener('click', checkAll);
+  document.getElementById('resetAll').addEventListener('click', resetAll);
+}
+init();
+</script>
+</body>
+</html>
